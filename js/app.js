@@ -255,6 +255,13 @@ window.addEventListener('pageshow', onReturn);
 window.addEventListener('focus', onReturn);
 setInterval(() => { if (renderedDay !== today()) renderHome(); }, 30_000);
 
+// ---------- offline support ----------
+// Skipped on localhost (so edits show immediately) unless ?sw is in the URL.
+const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.search).has('sw'))) {
+  navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker failed', e));
+}
+
 // ---------- boot ----------
 renderHome();
 if (state.activeTimer) {
