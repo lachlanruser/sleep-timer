@@ -1,5 +1,7 @@
 import { TASKS, FAST, durationMs } from './config.js';
 import { load, save } from './store.js';
+import { dayKey } from './dates.js';
+import { recordCompletion, completedIds } from './history.js';
 import * as T from './timer.js';
 import * as wake from './wakelock.js';
 import * as chime from './chime.js';
@@ -8,6 +10,7 @@ import { renderPie } from './pie.js';
 const $ = (id) => document.getElementById(id);
 const els = {
   pie: $('pie'), home: $('home'), timer: $('timer'), dateLabel: $('dateLabel'), hint: $('hint'),
+  doneMsg: $('doneMsg'), doneTitle: $('doneTitle'), doneSub: $('doneSub'),
   timerTask: $('timerTask'), ringWrap: $('ringWrap'), ring: $('ringProgress'),
   timeLeft: $('timeLeft'), endsAt: $('endsAt'), pauseBtn: $('pauseBtn'), cancelBtn: $('cancelBtn'),
   wakeNote: $('wakeNote'), testInfo: $('testInfo'),
@@ -17,11 +20,24 @@ const els = {
 const RING_C = 2 * Math.PI * 100;
 els.ring.style.strokeDasharray = `${RING_C}`;
 
+// Calm, sleep-appropriate messages for when everything is done.
+const DONE_MESSAGES = [
+  ['All done. Sweet dreams 🌙', 'Your future self says thank you.'],
+  ['Routine complete ✨', 'Phone down, lights low. Goodnight.'],
+  ['You did it 🌙', 'You showed up for yourself tonight.'],
+  ['Lovely work 🌿', 'Time to rest. See you tomorrow night.'],
+  ['Every slice, done 🌙', 'Let your mind go quiet now.'],
+];
+
 const state = load();
 let raf = 0;
 let lastText = '';
+let justDone = null; // task id to animate on the next home render
+let renderedDay = null;
+let hintTimeout = 0;
 
 const taskById = (id) => TASKS.find((t) => t.id === id);
+const today = () => dayKey(Date.now());
 const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
@@ -34,12 +50,52 @@ function showTimerView(on) {
   els.home.inert = on;
 }
 
+function pickMessage(key) {
+  let h = 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return DONE_MESSAGES[h % DONE_MESSAGES.length];
+}
+
+function defaultHint(doneCount) {
+  if (FAST) return `Fast test mode: 1 min = 2 s · ${doneCount} of ${TASKS.length} done`;
+  if (doneCount === 0) return 'Tap a task to begin';
+  return `${doneCount} of ${TASKS.length} done`;
+}
+
 function renderHome() {
-  els.dateLabel.textContent = new Date().toLocaleDateString(undefined, {
+  const key = today();
+  renderedDay = key;
+  const done = completedIds(state.days, key);
+  const doneCount = TASKS.filter((t) => done.has(t.id)).length;
+  const allDone = doneCount === TASKS.length;
+
+  els.dateLabel.textContent = new Date(Date.now()).toLocaleDateString(undefined, {
     weekday: 'long', day: 'numeric', month: 'long',
   });
-  renderPie(els.pie, TASKS, startTask);
-  els.hint.textContent = FAST ? 'Fast test mode: 1 min = 2 s' : 'Tap a task to begin';
+  renderPie(els.pie, TASKS, { done, justDone, onPick: pickTask });
+
+  clearTimeout(hintTimeout);
+  els.hint.hidden = allDone;
+  els.hint.textContent = defaultHint(doneCount);
+  const wasHidden = els.doneMsg.hidden;
+  els.doneMsg.hidden = !allDone;
+  if (allDone) {
+    const [title, sub] = pickMessage(key);
+    els.doneTitle.textContent = title;
+    els.doneSub.textContent = sub;
+    // Restart the gentle fade only when it first appears.
+    if (wasHidden) { els.doneMsg.style.animation = 'none'; void els.doneMsg.offsetWidth; els.doneMsg.style.animation = ''; }
+  }
+  justDone = null;
+}
+
+function flashHint(text) {
+  clearTimeout(hintTimeout);
+  els.hint.textContent = text;
+  hintTimeout = setTimeout(() => {
+    const done = completedIds(state.days, today());
+    els.hint.textContent = defaultHint(TASKS.filter((t) => done.has(t.id)).length);
+  }, 2500);
 }
 
 function renderTimer() {
@@ -61,6 +117,14 @@ function renderTimer() {
 }
 
 // ---------- timer lifecycle ----------
+function pickTask(task) {
+  if (completedIds(state.days, today()).has(task.id)) {
+    flashHint(`${task.name} is done for tonight ✓`);
+    return;
+  }
+  startTask(task);
+}
+
 function startTask(task) {
   if (state.activeTimer) return;
   chime.unlock(); // must happen inside the tap for iOS
@@ -102,17 +166,14 @@ function finish(t) {
   cancelAnimationFrame(raf);
   els.confirm.hidden = true; // in case it finished while "Stop?" was open
   state.activeTimer = null;
+  // Recorded for the day the timer *started* (a routine crossing midnight counts for that evening).
+  state.days = recordCompletion(state.days, t, Date.now(), TASKS.map((x) => x.id));
   persist();
-  onTaskCompleted(t);
+  justDone = t.dayKey === today() ? t.taskId : null;
   wake.release();
   chime.play();
-  renderTimer();
+  renderHome();
   showTimerView(false);
-}
-
-// Hook for slice 2/3 (highlighting + day history).
-function onTaskCompleted(t) {
-  console.info('Completed', t.taskId, 'for', t.dayKey);
 }
 
 function cancelTimer() {
@@ -162,15 +223,17 @@ wake.onStatus((status, detail) => {
   }
 });
 
-// ---------- coming back to the page ----------
+// ---------- coming back to the page / passing midnight ----------
 function onReturn() {
   if (document.visibilityState !== 'visible') return;
-  renderHome();
-  if (state.activeTimer && !check()) loop();
+  if (state.activeTimer && check()) return; // finish() re-renders home
+  if (renderedDay !== today()) renderHome();
+  if (state.activeTimer) loop();
 }
 document.addEventListener('visibilitychange', onReturn);
 window.addEventListener('pageshow', onReturn);
 window.addEventListener('focus', onReturn);
+setInterval(() => { if (renderedDay !== today()) renderHome(); }, 30_000);
 
 // ---------- boot ----------
 renderHome();
