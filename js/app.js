@@ -1,7 +1,8 @@
 import { TASKS, FAST, durationMs } from './config.js';
-import { load, save } from './store.js';
+import { load, save, requestPersistence } from './store.js';
 import { dayKey } from './dates.js';
 import { recordCompletion, completedIds } from './history.js';
+import { computeStreaks } from './streak.js';
 import * as T from './timer.js';
 import * as wake from './wakelock.js';
 import * as chime from './chime.js';
@@ -9,7 +10,7 @@ import { renderPie } from './pie.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  pie: $('pie'), home: $('home'), timer: $('timer'), dateLabel: $('dateLabel'), hint: $('hint'),
+  pie: $('pie'), home: $('home'), timer: $('timer'), dateLabel: $('dateLabel'), hint: $('hint'), streak: $('streak'),
   doneMsg: $('doneMsg'), doneTitle: $('doneTitle'), doneSub: $('doneSub'),
   timerTask: $('timerTask'), ringWrap: $('ringWrap'), ring: $('ringProgress'),
   timeLeft: $('timeLeft'), endsAt: $('endsAt'), pauseBtn: $('pauseBtn'), cancelBtn: $('cancelBtn'),
@@ -73,6 +74,7 @@ function renderHome() {
     weekday: 'long', day: 'numeric', month: 'long',
   });
   renderPie(els.pie, TASKS, { done, justDone, onPick: pickTask });
+  renderStreak(computeStreaks(state.days, key));
 
   clearTimeout(hintTimeout);
   els.hint.hidden = allDone;
@@ -87,6 +89,23 @@ function renderHome() {
     if (wasHidden) { els.doneMsg.style.animation = 'none'; void els.doneMsg.offsetWidth; els.doneMsg.style.animation = ''; }
   }
   justDone = null;
+}
+
+function renderStreak({ current, best }) {
+  const nights = (n) => `${n} night${n === 1 ? '' : 's'}`;
+  const span = (cls, text) => {
+    const s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text;
+    return s;
+  };
+  els.streak.replaceChildren();
+  if (current > 0) {
+    els.streak.append('Streak ', span('num', nights(current)));
+    if (best > current) els.streak.append(span('best', ` · best ${best}`));
+  } else if (best > 0) {
+    els.streak.append(span('best', `Best streak ${nights(best)}. Start a new one tonight.`));
+  }
 }
 
 function flashHint(text) {
@@ -169,6 +188,7 @@ function finish(t) {
   // Recorded for the day the timer *started* (a routine crossing midnight counts for that evening).
   state.days = recordCompletion(state.days, t, Date.now(), TASKS.map((x) => x.id));
   persist();
+  requestPersistence();
   justDone = t.dayKey === today() ? t.taskId : null;
   wake.release();
   chime.play();

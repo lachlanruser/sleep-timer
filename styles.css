@@ -101,7 +101,10 @@ body.timing .view-timer { opacity: 1; transform: scale(1); visibility: visible; 
 .slice-mins.done { fill: rgba(43, 28, 19, 0.6); }
 .pie.all-done { animation: breathe 7s ease-in-out infinite; }
 
-.below { min-height: 5.2em; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+.streak { margin: 0 0 8px; font-size: 0.95rem; color: var(--cream-dim); min-height: 1.3em; text-align: center; font-variant-numeric: tabular-nums; }
+.streak .num { color: var(--honey-text); font-weight: 600; }
+.streak .best { color: var(--cream-faint); }
+.below { min-height: 6.6em; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 .hint { margin: 0; font-size: 0.9rem; color: var(--cream-faint); min-height: 1.3em; text-align: center; transition: opacity 400ms var(--ease); }
 .done-msg { text-align: center; animation: rise-in 1.8s var(--ease) both; }
 .done-msg[hidden] { display: none; }
