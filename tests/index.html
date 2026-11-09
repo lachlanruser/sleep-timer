@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sleep Timer tests</title>
+  <style>
+    body { margin: 0; padding: 16px; background: #241812; color: #efe1cc; font: 14px/1.5 ui-monospace, Consolas, monospace; }
+    .suite { margin: 14px 0 2px; font-weight: bold; color: #d6a05c; }
+    .pass { margin: 0; color: #a9c7a0; }
+    .fail { margin: 0; color: #ff8f80; }
+    #summary { font-size: 16px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="out"></div>
+  <script type="module">
+    import { run } from './harness.js';
+    import './dates.test.js';
+    import './timer.test.js';
+    await run(document.getElementById('out'));
+  </script>
+</body>
+</html>

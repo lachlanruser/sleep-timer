@@ -1,0 +1,190 @@
+:root {
+  --bg: #241812;
+  --bg-deep: #1b120d;
+  --slice: #4a372c;
+  --slice-active: #57412f;
+  --divider: #241812;
+  --cream: #efe1cc;
+  --cream-dim: rgba(239, 225, 204, 0.62);
+  --cream-faint: rgba(239, 225, 204, 0.32);
+  --amber: #d6a05c;
+  --amber-glow: rgba(214, 160, 92, 0.35);
+  --track: rgba(239, 225, 204, 0.08);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --slow: 600ms;
+  --font: ui-rounded, 'SF Pro Rounded', 'Nunito', 'Quicksand', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--cream);
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+body {
+  background: radial-gradient(120% 80% at 50% 45%, #2e2017 0%, var(--bg) 55%, var(--bg-deep) 100%) fixed;
+}
+
+.stage {
+  position: relative;
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- views & the "circle fills the screen" transition ---------- */
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vh;
+  padding: calc(env(safe-area-inset-top) + 24px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  transition: opacity var(--slow) var(--ease), transform var(--slow) var(--ease), visibility 0s linear var(--slow);
+}
+
+.view-home { opacity: 1; transform: scale(1); visibility: visible; transition-delay: 0s; }
+.view-timer { opacity: 0; transform: scale(0.82); visibility: hidden; pointer-events: none; }
+
+body.timing .view-home { opacity: 0; transform: scale(1.35); visibility: hidden; pointer-events: none;
+  transition: opacity var(--slow) var(--ease), transform var(--slow) var(--ease), visibility 0s linear var(--slow); }
+body.timing .view-timer { opacity: 1; transform: scale(1); visibility: visible; pointer-events: auto;
+  transition: opacity var(--slow) var(--ease), transform var(--slow) var(--ease), visibility 0s; }
+
+/* ---------- home ---------- */
+.top { text-align: center; }
+.title {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+}
+.date { margin: 6px 0 0; font-size: 0.9rem; color: var(--cream-faint); }
+
+.circle-wrap { width: min(84vw, 56vh, 440px); aspect-ratio: 1; }
+.pie { width: 100%; height: 100%; overflow: visible; }
+
+.slice { cursor: pointer; outline: none; }
+.slice-shape { fill: var(--slice); transition: fill var(--slow) var(--ease); }
+.slice:hover .slice-shape, .slice:focus-visible .slice-shape { fill: var(--slice-active); }
+.slice:active .slice-shape { fill: var(--slice-active); }
+.slice-name, .slice-mins { text-anchor: middle; pointer-events: none; font-family: var(--font); }
+.slice-name { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; fill: var(--cream-dim); }
+.slice-mins { font-size: 7.5px; fill: var(--cream-faint); }
+.divider { stroke: var(--divider); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+
+.hint { margin: 0; font-size: 0.9rem; color: var(--cream-faint); min-height: 1.3em; text-align: center; }
+
+/* ---------- timer ---------- */
+.task-name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+}
+
+.ring-wrap {
+  position: relative;
+  width: min(88vw, 62vh, 480px);
+  aspect-ratio: 1;
+  animation: breathe 7s ease-in-out infinite;
+}
+.ring-wrap.paused { animation-play-state: paused; opacity: 0.6; }
+.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track, .ring-progress { fill: none; stroke-width: 7; }
+.ring-track { stroke: var(--track); }
+.ring-progress {
+  stroke: var(--amber);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--amber-glow));
+}
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.time {
+  font-size: clamp(3.4rem, 19vw, 6.5rem);
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--cream);
+}
+.ends { margin-top: 4px; font-size: 0.95rem; color: var(--cream-faint); min-height: 1.2em; }
+
+.controls { display: flex; gap: 16px; }
+.btn {
+  appearance: none;
+  border: 0;
+  min-width: 120px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font: 500 1rem var(--font);
+  color: var(--bg-deep);
+  background: var(--amber);
+  cursor: pointer;
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+.btn:active { transform: scale(0.97); opacity: 0.85; }
+.btn-ghost { background: rgba(239, 225, 204, 0.08); color: var(--cream-dim); }
+
+.wake-note { margin: 0; max-width: 30ch; text-align: center; font-size: 0.82rem; line-height: 1.4; color: var(--cream-faint); min-height: 1.2em; }
+.wake-note.warn { color: rgba(214, 160, 92, 0.8); }
+.test-info { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 6px); margin: 0; font-size: 0.7rem; color: rgba(239, 225, 204, 0.22); }
+
+/* ---------- cancel confirm sheet ---------- */
+.sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 24px);
+  background: rgba(20, 13, 9, 0.6);
+  animation: fade-in 300ms var(--ease);
+}
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+  border-radius: 22px;
+  background: #33241b;
+  text-align: center;
+}
+.sheet-title { margin: 0 0 6px; font-size: 1.1rem; }
+.sheet-sub { margin: 0 0 18px; color: var(--cream-dim); font-size: 0.92rem; }
+.sheet-row { display: flex; gap: 12px; justify-content: center; }
+
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --slow: 1ms; }
+  .ring-wrap { animation: none; }
+  .sheet { animation: none; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .view { flex-direction: row; gap: 6vw; }
+  .view-timer { flex-wrap: wrap; align-content: center; }
+}

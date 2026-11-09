@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#241812">
+  <meta name="color-scheme" content="dark">
+  <title>Sleep Timer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <main class="stage">
+    <section id="home" class="view view-home" aria-label="Tonight's routine">
+      <header class="top">
+        <h1 class="title">Tonight</h1>
+        <p class="date" id="dateLabel"></p>
+      </header>
+      <div class="circle-wrap">
+        <svg id="pie" class="pie" viewBox="-104 -104 208 208" role="group" aria-label="Bedtime tasks"></svg>
+      </div>
+      <p class="hint" id="hint">Tap a task to begin</p>
+    </section>
+
+    <section id="timer" class="view view-timer" aria-label="Timer" inert>
+      <p class="task-name" id="timerTask"></p>
+      <div class="ring-wrap" id="ringWrap">
+        <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+          <circle class="ring-track" cx="110" cy="110" r="100"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="100"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="time" id="timeLeft" role="timer" aria-live="off">0:00</div>
+          <div class="ends" id="endsAt"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="cancelBtn" class="btn btn-ghost" type="button">Cancel</button>
+        <button id="pauseBtn" class="btn" type="button">Pause</button>
+      </div>
+      <p class="wake-note" id="wakeNote"></p>
+      <p class="test-info" id="testInfo"></p>
+    </section>
+
+    <div id="confirm" class="sheet" hidden>
+      <div class="sheet-card" role="alertdialog" aria-labelledby="confirmTitle" aria-describedby="confirmSub">
+        <p class="sheet-title" id="confirmTitle">Stop this task?</p>
+        <p class="sheet-sub" id="confirmSub">It won't count towards tonight.</p>
+        <div class="sheet-row">
+          <button id="stopBtn" class="btn btn-ghost" type="button">Stop</button>
+          <button id="keepBtn" class="btn" type="button">Keep going</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
