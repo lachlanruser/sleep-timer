@@ -1,6 +1,6 @@
 // Offline support: precache the whole app and serve it cache-first.
 // IMPORTANT: bump CACHE_VERSION on every deploy, or phones keep the old version.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE = `sleep-timer-${CACHE_VERSION}`;
 
 const FILES = [
@@ -18,6 +18,8 @@ const FILES = [
   'js/pie.js',
   'js/wakelock.js',
   'js/chime.js',
+  'js/icons.js',
+  'js/effects.js',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

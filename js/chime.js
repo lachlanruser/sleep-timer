@@ -35,16 +35,21 @@ function strike(t, freq, master) {
   });
 }
 
-export async function play() {
+async function playNotes(notes, gap, volume) {
   if (!ctx) unlock();
   if (!ctx) return;
   try {
     if (ctx.state !== 'running') await ctx.resume();
   } catch { return; }
   const master = ctx.createGain();
-  master.gain.value = 0.16;
+  master.gain.value = volume;
   master.connect(ctx.destination);
   const now = ctx.currentTime + 0.05;
-  strike(now, 523.25, master); // C5
-  strike(now + 0.9, 659.25, master); // E5
+  notes.forEach((f, i) => strike(now + i * gap, f, master));
 }
+
+/** End of a task: two soft notes (C5, E5). */
+export const play = () => playNotes([523.25, 659.25], 0.9, 0.16);
+
+/** All tasks done: three slow rising notes (C5, E5, G5), a little quieter. */
+export const finale = () => playNotes([523.25, 659.25, 783.99], 0.85, 0.14);

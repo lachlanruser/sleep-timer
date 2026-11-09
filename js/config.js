@@ -1,10 +1,10 @@
 // The routine. Adding a task here adds a slice to the circle.
-// `sound` is reserved for V2 (per-task music); unused in V1.
+// `icon` is a name from js/icons.js. `sound` is reserved for V2 (per-task music); unused in V1.
 export const TASKS = [
-  { id: 'meditate', name: 'Meditate', minutes: 5, sound: null },
-  { id: 'read', name: 'Read', minutes: 10, sound: null },
-  { id: 'journal', name: 'Journal', minutes: 5, sound: null },
-  { id: 'stretch', name: 'Stretch', minutes: 10, sound: null },
+  { id: 'meditate', name: 'Meditate', minutes: 5, icon: 'lotus', sound: null },
+  { id: 'read', name: 'Read', minutes: 10, icon: 'book', sound: null },
+  { id: 'journal', name: 'Journal', minutes: 5, icon: 'pencil', sound: null },
+  { id: 'stretch', name: 'Stretch', minutes: 10, icon: 'stretch', sound: null },
 ];
 
 export const STORAGE_KEY = 'sleepTimer.v1';

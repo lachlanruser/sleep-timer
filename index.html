@@ -18,6 +18,8 @@
 </head>
 <body>
   <main class="stage">
+    <div class="candle-glow" aria-hidden="true"></div>
+    <div class="sky" id="sky" aria-hidden="true"></div>
     <section id="home" class="view view-home" aria-label="Tonight's routine">
       <header class="top">
         <h1 class="title">Tonight</h1>
@@ -37,11 +39,28 @@
     </section>
 
     <section id="timer" class="view view-timer" aria-label="Timer" inert>
-      <p class="task-name" id="timerTask"></p>
+      <p class="task-name"><span id="timerIcon" class="task-icon"></span><span id="timerTask"></span></p>
       <div class="ring-wrap" id="ringWrap">
         <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fbe2ae"></stop>
+              <stop offset="1" stop-color="#e0974a"></stop>
+            </linearGradient>
+            <radialGradient id="flameGrad" cx="50%" cy="72%" r="65%">
+              <stop offset="0" stop-color="#fff7df"></stop>
+              <stop offset="0.45" stop-color="#ffd27c"></stop>
+              <stop offset="1" stop-color="#ee8a3c"></stop>
+            </radialGradient>
+          </defs>
           <circle class="ring-track" cx="110" cy="110" r="100"></circle>
-          <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="100"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="100" transform="rotate(-90 110 110)"></circle>
+          <g id="flamePos">
+            <g class="flame">
+              <circle class="flame-glow" cx="110" cy="9" r="9"></circle>
+              <path class="flame-shape" d="M110 0.5C114.2 5.5 116.2 9.6 113.6 13.6C112.2 15.6 107.8 15.6 106.4 13.6C103.8 9.6 105.8 5.5 110 0.5Z" fill="url(#flameGrad)"></path>
+            </g>
+          </g>
         </svg>
         <div class="ring-center">
           <div class="time" id="timeLeft" role="timer" aria-live="off">0:00</div>
@@ -55,6 +74,8 @@
       <p class="wake-note" id="wakeNote"></p>
       <p class="test-info" id="testInfo"></p>
     </section>
+
+    <div class="fx" id="fx" aria-hidden="true"></div>
 
     <div id="confirm" class="sheet" hidden>
       <div class="sheet-card" role="alertdialog" aria-labelledby="confirmTitle" aria-describedby="confirmSub">

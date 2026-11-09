@@ -7,12 +7,15 @@ import * as T from './timer.js';
 import * as wake from './wakelock.js';
 import * as chime from './chime.js';
 import { renderPie } from './pie.js';
+import { makeSky, joinFireflies, finale } from './effects.js';
+import { iconSvg } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
   pie: $('pie'), home: $('home'), timer: $('timer'), dateLabel: $('dateLabel'), hint: $('hint'), streak: $('streak'),
   doneMsg: $('doneMsg'), doneTitle: $('doneTitle'), doneSub: $('doneSub'),
-  timerTask: $('timerTask'), ringWrap: $('ringWrap'), ring: $('ringProgress'),
+  timerTask: $('timerTask'), timerIcon: $('timerIcon'), ringWrap: $('ringWrap'), ring: $('ringProgress'),
+  flamePos: $('flamePos'), sky: $('sky'), fx: $('fx'),
   timeLeft: $('timeLeft'), endsAt: $('endsAt'), pauseBtn: $('pauseBtn'), cancelBtn: $('cancelBtn'),
   wakeNote: $('wakeNote'), testInfo: $('testInfo'),
   confirm: $('confirm'), confirmTitle: $('confirmTitle'), stopBtn: $('stopBtn'), keepBtn: $('keepBtn'),
@@ -23,11 +26,11 @@ els.ring.style.strokeDasharray = `${RING_C}`;
 
 // Calm, sleep-appropriate messages for when everything is done.
 const DONE_MESSAGES = [
-  ['All done. Sweet dreams 🌙', 'Your future self says thank you.'],
-  ['Routine complete ✨', 'Phone down, lights low. Goodnight.'],
-  ['You did it 🌙', 'You showed up for yourself tonight.'],
-  ['Lovely work 🌿', 'Time to rest. See you tomorrow night.'],
-  ['Every slice, done 🌙', 'Let your mind go quiet now.'],
+  ['Full moon tonight', 'Every slice done. Sweet dreams.'],
+  ['The moon is glowing', 'Blow out the candle. Sleep well.'],
+  ['All aglow', 'You showed up for yourself tonight.'],
+  ['A whole moon, all yours', 'Phone down, lights low. Goodnight.'],
+  ['Cosy and complete', 'Let your mind go quiet now.'],
 ];
 
 const state = load();
@@ -36,6 +39,8 @@ let lastText = '';
 let justDone = null; // task id to animate on the next home render
 let renderedDay = null;
 let hintTimeout = 0;
+let lastPie = null; // what renderPie reported, for the celebration effects
+let lastDash = -1;
 
 const taskById = (id) => TASKS.find((t) => t.id === id);
 const today = () => dayKey(Date.now());
@@ -57,10 +62,23 @@ function pickMessage(key) {
   return DONE_MESSAGES[h % DONE_MESSAGES.length];
 }
 
-function defaultHint(doneCount) {
-  if (FAST) return `Fast test mode: 1 min = 2 s · ${doneCount} of ${TASKS.length} done`;
-  if (doneCount === 0) return 'Tap a task to begin';
-  return `${doneCount} of ${TASKS.length} done`;
+/** The moon's phase for how many tasks are done (works for any task count). */
+function moonPhase(doneCount, total) {
+  if (doneCount === 0) return 'New moon';
+  const r = doneCount / total;
+  if (r < 0.5) return 'Crescent moon';
+  if (r === 0.5) return 'Half moon';
+  if (r < 1) return 'Gibbous moon';
+  return 'Full moon';
+}
+
+function setHint(doneCount) {
+  const total = TASKS.length;
+  const phase = document.createElement('span');
+  phase.className = 'phase';
+  phase.textContent = moonPhase(doneCount, total);
+  const rest = doneCount === 0 ? ' · tap a task to begin' : ` · ${doneCount} of ${total}`;
+  els.hint.replaceChildren(phase, rest, FAST ? ' · fast test mode' : '');
 }
 
 function renderHome() {
@@ -73,14 +91,17 @@ function renderHome() {
   els.dateLabel.textContent = new Date(Date.now()).toLocaleDateString(undefined, {
     weekday: 'long', day: 'numeric', month: 'long',
   });
-  renderPie(els.pie, TASKS, { done, justDone, onPick: pickTask });
+  lastPie = renderPie(els.pie, TASKS, { done, justDone, onPick: pickTask });
+  const isFinale = allDone && justDone != null;
+  els.pie.classList.toggle('finale', isFinale);
   renderStreak(computeStreaks(state.days, key));
 
   clearTimeout(hintTimeout);
   els.hint.hidden = allDone;
-  els.hint.textContent = defaultHint(doneCount);
+  setHint(doneCount);
   const wasHidden = els.doneMsg.hidden;
   els.doneMsg.hidden = !allDone;
+  els.doneMsg.classList.toggle('late', isFinale); // wait for the glow-up first
   if (allDone) {
     const [title, sub] = pickMessage(key);
     els.doneTitle.textContent = title;
@@ -113,7 +134,7 @@ function flashHint(text) {
   els.hint.textContent = text;
   hintTimeout = setTimeout(() => {
     const done = completedIds(state.days, today());
-    els.hint.textContent = defaultHint(TASKS.filter((t) => done.has(t.id)).length);
+    setHint(TASKS.filter((t) => done.has(t.id)).length);
   }, 2500);
 }
 
@@ -122,7 +143,14 @@ function renderTimer() {
   if (!t) return;
   const now = Date.now();
   const paused = T.isPaused(t);
-  els.ring.style.strokeDashoffset = `${RING_C * T.progress(t, now)}`;
+  const p = T.progress(t, now);
+  const dash = RING_C * p;
+  if (Math.abs(dash - lastDash) > 0.3) { // skip sub-pixel repaints (battery)
+    lastDash = dash;
+    els.ring.style.strokeDashoffset = `${dash}`;
+    // The flame sits at the tip of the remaining ring.
+    els.flamePos.setAttribute('transform', `rotate(${((1 - p) * 360).toFixed(2)} 110 110)`);
+  }
   const text = T.formatRemaining(T.remainingMs(t, now));
   if (text !== lastText) {
     els.timeLeft.textContent = text;
@@ -154,8 +182,11 @@ function startTask(task) {
 
 function enterTimer() {
   const t = state.activeTimer;
-  els.timerTask.textContent = taskById(t.taskId)?.name ?? '';
+  const task = taskById(t.taskId);
+  els.timerTask.textContent = task?.name ?? '';
+  els.timerIcon.replaceChildren(iconSvg(task?.icon));
   lastText = '';
+  lastDash = -1;
   renderTimer();
   showTimerView(true);
   wake.acquire();
@@ -189,11 +220,19 @@ function finish(t) {
   state.days = recordCompletion(state.days, t, Date.now(), TASKS.map((x) => x.id));
   persist();
   requestPersistence();
-  justDone = t.dayKey === today() ? t.taskId : null;
+  const forToday = t.dayKey === today(); // false if it started before midnight
+  justDone = forToday ? t.taskId : null;
   wake.release();
-  chime.play();
-  renderHome();
+  renderHome(); // consumes justDone
   showTimerView(false);
+  const pie = lastPie;
+  if (!forToday) { chime.play(); return; }
+  if (pie.allDone) chime.finale(); else chime.play();
+  // Let the timer view fade away before the fireflies rise.
+  setTimeout(() => {
+    joinFireflies(els.pie, els.fx, pie);
+    if (pie.allDone) finale(els.pie, els.fx);
+  }, 450);
 }
 
 function cancelTimer() {
@@ -263,6 +302,7 @@ if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.se
 }
 
 // ---------- boot ----------
+makeSky(els.sky);
 renderHome();
 if (state.activeTimer) {
   if (!check()) enterTimer(); // resume a timer that survived a reload / app kill
